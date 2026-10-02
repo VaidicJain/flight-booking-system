@@ -1,0 +1,834 @@
+"use client";
+import React, { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import SignupModal from "../../../components/SignupModal";
+import LoginModal from "../../../components/LoginModal";
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+}
+
+interface Traveler {
+  id: string;
+  travelerType: "ADULT" | "CHILD" | "INFANT";
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  gender: "MALE" | "FEMALE";
+  email: string;
+  phone: string;
+  countryCallingCode: string;
+  documents: {
+    documentType: "PASSPORT" | "ID_CARD";
+    number: string;
+    expiryDate: string;
+    issuanceCountry: string;
+    nationality: string;
+  };
+}
+
+interface ContactInfo {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  countryCallingCode: string;
+  address: {
+    street: string;
+    city: string;
+    postalCode: string;
+    country: string;
+  };
+}
+
+export default function BookingPage({ params }: { params: Promise<{ id: string }> }) {
+  const router = useRouter();
+  const resolvedParams = React.use(params);
+  const [currentStep, setCurrentStep] = useState(0); // Start with authentication step
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [showSignup, setShowSignup] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  
+  // Mock flight data (in real app, this would come from the pricing API)
+  const [travelers, setTravelers] = useState<Traveler[]>([
+    {
+      id: "1",
+      travelerType: "ADULT",
+      firstName: "",
+      lastName: "",
+      dateOfBirth: "",
+      gender: "MALE",
+      email: "",
+      phone: "",
+      countryCallingCode: "+1",
+      documents: {
+        documentType: "PASSPORT",
+        number: "",
+        expiryDate: "",
+        issuanceCountry: "",
+        nationality: "",
+      },
+    },
+    {
+      id: "2",
+      travelerType: "CHILD",
+      firstName: "",
+      lastName: "",
+      dateOfBirth: "",
+      gender: "FEMALE",
+      email: "",
+      phone: "",
+      countryCallingCode: "+1",
+      documents: {
+        documentType: "PASSPORT",
+        number: "",
+        expiryDate: "",
+        issuanceCountry: "",
+        nationality: "",
+      },
+    },
+  ]);
+
+  const [contactInfo, setContactInfo] = useState<ContactInfo>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    countryCallingCode: "+1",
+    address: {
+      street: "",
+      city: "",
+      postalCode: "",
+      country: "",
+    },
+  });
+
+  const [paymentInfo, setPaymentInfo] = useState({
+    cardNumber: "",
+    expiryDate: "",
+    cvv: "",
+    cardholderName: "",
+  });
+
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash'>('card');
+
+  // Authentication handlers
+  const handleSignupSuccess = (userData: User) => {
+    setUser(userData);
+    setShowSignup(false);
+    setCurrentStep(1); // Move to traveler information
+  };
+
+  const handleLoginSuccess = (userData: User) => {
+    setUser(userData);
+    setShowLogin(false);
+    setCurrentStep(1); // Move to traveler information
+  };
+
+  const handleSwitchToSignup = () => {
+    setShowLogin(false);
+    setShowSignup(true);
+  };
+
+  const updateTraveler = (index: number, field: string, value: string) => {
+    const updatedTravelers = [...travelers];
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      (updatedTravelers[index] as any)[parent][child] = value;
+    } else {
+      (updatedTravelers[index] as any)[field] = value;
+    }
+    setTravelers(updatedTravelers);
+  };
+
+  const updateContactInfo = (field: string, value: string) => {
+    if (field.includes('.')) {
+      const [parent, child] = field.split('.');
+      setContactInfo(prev => ({
+        ...prev,
+        [parent]: parent === 'address'
+          ? { ...(prev.address as ContactInfo['address']), [child]: value }
+          : { [child]: value }
+      }));
+    } else {
+      setContactInfo(prev => ({ ...prev, [field]: value }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitting(false);
+      // Generate a mock order ID and navigate to success page
+      const orderId = `MOCK_BOOKING_ID_${Date.now()}`;
+      router.push(`/booking/success/${orderId}`);
+    }, 2000);
+  };
+
+  const totalSteps = 5; // Now includes authentication step
+  const progress = (currentStep / totalSteps) * 100;
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-6">
+            <Link href={`/flights/${resolvedParams.id}`} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              <span className="font-semibold">Back to Flight Details</span>
+            </Link>
+            <div className="flex items-center gap-6">
+              {user && (
+                <div className="text-right">
+                  <p className="text-sm opacity-90">Booking for</p>
+                  <p className="font-semibold">{user.firstName} {user.lastName}</p>
+                </div>
+              )}
+              <div className="text-right">
+                <div className="text-2xl font-bold">EUR 546.70</div>
+                <div className="text-sm opacity-90">Total for all passengers</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">Step {currentStep + 1} of {totalSteps}</span>
+            <span className="text-sm text-gray-500">{Math.round(progress)}% Complete</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${progress}%` }}></div>
+          </div>
+          <div className="flex justify-between mt-2 text-xs text-gray-500">
+            <span>Sign In</span>
+            <span>Traveler Info</span>
+            <span>Contact Details</span>
+            <span>Payment</span>
+            <span>Review</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Step 0: Authentication */}
+        {currentStep === 0 && (
+          <div className="bg-white rounded-lg shadow-sm border p-8">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Sign In to Continue</h2>
+              <p className="text-gray-600">
+                Please sign in or create an account to proceed with your booking
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+              {/* Login Card */}
+              <div className="border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Already have an account?</h3>
+                <p className="text-gray-600 mb-6">
+                  Sign in to access your existing bookings and complete your purchase.
+                </p>
+                <button
+                  onClick={() => setShowLogin(true)}
+                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  Sign In
+                </button>
+              </div>
+
+              {/* Signup Card */}
+              <div className="border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">New to Aero Bound?</h3>
+                <p className="text-gray-600 mb-6">
+                  Create an account to manage your bookings and get exclusive offers.
+                </p>
+                <button
+                  onClick={() => setShowSignup(true)}
+                  className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 font-medium"
+                >
+                  Create Account
+                </button>
+              </div>
+            </div>
+
+            {/* Benefits */}
+            <div className="mt-8 p-6 bg-blue-50 rounded-lg">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Why create an account?</h3>
+              <div className="grid md:grid-cols-3 gap-4">
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-600 mt-1 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-medium text-gray-900">Manage Bookings</p>
+                    <p className="text-sm text-gray-600">Access all your tickets in one place</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-600 mt-1 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-medium text-gray-900">Exclusive Offers</p>
+                    <p className="text-sm text-gray-600">Get member-only deals and discounts</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-600 mt-1 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div>
+                    <p className="font-medium text-gray-900">Quick Booking</p>
+                    <p className="text-sm text-gray-600">Save your details for faster booking</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <form onSubmit={e => {
+          if (currentStep === 3 && paymentMethod === 'cash') {
+            // Skip card validation if cash is selected, go to next step
+            e.preventDefault();
+            setCurrentStep(prev => prev + 1);
+            return;
+          }
+          handleSubmit(e);
+        }} className="space-y-8">
+          {/* Step 1: Traveler Information */}
+          {currentStep === 1 && (
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Traveler Information</h2>
+              
+              <div className="space-y-8">
+                {travelers.map((traveler, index) => (
+                  <div key={traveler.id} className="border border-gray-200 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 capitalize">
+                      {traveler.travelerType} {index + 1}
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={traveler.firstName}
+                          onChange={(e) => updateTraveler(index, 'firstName', e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                        <input
+                          type="text"
+                          required
+                          value={traveler.lastName}
+                          onChange={(e) => updateTraveler(index, 'lastName', e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
+                        <input
+                          type="date"
+                          required
+                          value={traveler.dateOfBirth}
+                          onChange={(e) => updateTraveler(index, 'dateOfBirth', e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
+                        <select
+                          required
+                          value={traveler.gender}
+                          onChange={(e) => updateTraveler(index, 'gender', e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        >
+                          <option value="MALE">Male</option>
+                          <option value="FEMALE">Female</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                        <input
+                          type="email"
+                          required
+                          value={traveler.email}
+                          onChange={(e) => updateTraveler(index, 'email', e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                        <div className="flex">
+                          <select
+                            value={traveler.countryCallingCode}
+                            onChange={(e) => updateTraveler(index, 'countryCallingCode', e.target.value)}
+                            className="border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          >
+                            <option value="+1">+1</option>
+                            <option value="+44">+44</option>
+                            <option value="+33">+33</option>
+                            <option value="+49">+49</option>
+                          </select>
+                          <input
+                            type="tel"
+                            required
+                            value={traveler.phone}
+                            onChange={(e) => updateTraveler(index, 'phone', e.target.value)}
+                            className="flex-1 border border-gray-300 rounded-r-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Document Information */}
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h4 className="text-md font-semibold text-gray-800 mb-4">Travel Document</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Document Type *</label>
+                          <select
+                            required
+                            value={traveler.documents.documentType}
+                            onChange={(e) => updateTraveler(index, 'documents.documentType', e.target.value)}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          >
+                            <option value="PASSPORT">Passport</option>
+                            <option value="ID_CARD">ID Card</option>
+                          </select>
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Document Number *</label>
+                          <input
+                            type="text"
+                            required
+                            value={traveler.documents.number}
+                            onChange={(e) => updateTraveler(index, 'documents.number', e.target.value)}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label>
+                          <input
+                            type="date"
+                            required
+                            value={traveler.documents.expiryDate}
+                            onChange={(e) => updateTraveler(index, 'documents.expiryDate', e.target.value)}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Nationality *</label>
+                          <select
+                            required
+                            value={traveler.documents.nationality}
+                            onChange={(e) => updateTraveler(index, 'documents.nationality', e.target.value)}
+                            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                          >
+                            <option value="">Select Nationality</option>
+                            <option value="US">United States</option>
+                            <option value="GB">United Kingdom</option>
+                            <option value="FR">France</option>
+                            <option value="DE">Germany</option>
+                            <option value="ES">Spain</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Contact Information */}
+          {currentStep === 2 && (
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Contact Information</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactInfo.firstName}
+                    onChange={(e) => updateContactInfo('firstName', e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactInfo.lastName}
+                    onChange={(e) => updateContactInfo('lastName', e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <input
+                    type="email"
+                    required
+                    value={contactInfo.email}
+                    onChange={(e) => updateContactInfo('email', e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                  <div className="flex">
+                    <select
+                      value={contactInfo.countryCallingCode}
+                      onChange={(e) => updateContactInfo('countryCallingCode', e.target.value)}
+                      className="border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    >
+                      <option value="+1">+1</option>
+                      <option value="+44">+44</option>
+                      <option value="+33">+33</option>
+                      <option value="+49">+49</option>
+                    </select>
+                    <input
+                      type="tel"
+                      required
+                      value={contactInfo.phone}
+                      onChange={(e) => updateContactInfo('phone', e.target.value)}
+                      className="flex-1 border border-gray-300 rounded-r-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    />
+                  </div>
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Street Address *</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactInfo.address.street}
+                    onChange={(e) => updateContactInfo('address.street', e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactInfo.address.city}
+                    onChange={(e) => updateContactInfo('address.city', e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Postal Code *</label>
+                  <input
+                    type="text"
+                    required
+                    value={contactInfo.address.postalCode}
+                    onChange={(e) => updateContactInfo('address.postalCode', e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                </div>
+                
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country *</label>
+                  <select
+                    required
+                    value={contactInfo.address.country}
+                    onChange={(e) => updateContactInfo('address.country', e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  >
+                    <option value="">Select Country</option>
+                    <option value="US">United States</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="FR">France</option>
+                    <option value="DE">Germany</option>
+                    <option value="ES">Spain</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Payment Information */}
+          {currentStep === 3 && (
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Payment Information</h2>
+
+              {/* Payment Method Selector */}
+              <div className="mb-6 flex gap-4">
+                <button
+                  type="button"
+                  className={`px-4 py-2 rounded-lg border font-medium transition-colors duration-150 focus:outline-none ${paymentMethod === 'card' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                  onClick={() => setPaymentMethod('card')}
+                >
+                  Pay by Card
+                </button>
+                <button
+                  type="button"
+                  className={`px-4 py-2 rounded-lg border font-medium transition-colors duration-150 focus:outline-none ${paymentMethod === 'cash' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                  onClick={() => setPaymentMethod('cash')}
+                >
+                  Pay by Cash at Office
+                </button>
+              </div>
+
+              {/* Card Payment Fields */}
+              {paymentMethod === 'card' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Cardholder Name *</label>
+                    <input
+                      type="text"
+                      required={paymentMethod === 'card'}
+                      value={paymentInfo.cardholderName}
+                      onChange={(e) => setPaymentInfo(prev => ({ ...prev, cardholderName: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Card Number *</label>
+                    <input
+                      type="text"
+                      required={paymentMethod === 'card'}
+                      placeholder="1234 5678 9012 3456"
+                      value={paymentInfo.cardNumber}
+                      onChange={(e) => setPaymentInfo(prev => ({ ...prev, cardNumber: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date *</label>
+                    <input
+                      type="text"
+                      required={paymentMethod === 'card'}
+                      placeholder="MM/YY"
+                      value={paymentInfo.expiryDate}
+                      onChange={(e) => setPaymentInfo(prev => ({ ...prev, expiryDate: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-700"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">CVV *</label>
+                    <input
+                      type="text"
+                      required={paymentMethod === 'card'}
+                      placeholder="123"
+                      value={paymentInfo.cvv}
+                      onChange={(e) => setPaymentInfo(prev => ({ ...prev, cvv: e.target.value }))}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-700"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Cash Payment Instructions */}
+              {paymentMethod === 'cash' && (
+                <div className="p-6 bg-green-50 rounded-lg border border-green-200 mt-2">
+                  <h3 className="text-lg font-semibold text-green-800 mb-2 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0 10c-4.418 0-8-1.79-8-4V8c0-2.21 3.582-4 8-4s8 1.79 8 4v6c0 2.21-3.582 4-8 4z" /></svg>
+                    Pay by Cash at Office
+                  </h3>
+                  <p className="text-green-700 mb-2">You have chosen to pay by cash at our office. Please visit our office within 24 hours to complete your payment and confirm your booking.</p>
+                  <ul className="list-disc pl-6 text-green-700 text-sm mb-2">
+                    <li>Office Address: <span className="font-medium">Kampala Road ETower Level 6 Room 1</span></li>
+                    <li>Opening Hours: <span className="font-medium">Mon-Fri 9:00am - 6:00pm</span></li>
+                    <li>Bring your booking reference and a valid ID.</li>
+                  </ul>
+                  <p className="text-green-700 text-sm">Your booking will be held for 24 hours. If payment is not received, your reservation may be cancelled.</p>
+                </div>
+              )}
+
+              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-blue-600 mt-0.5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium">Secure Payment</p>
+                    <p>Your payment information is encrypted and secure. We use industry-standard SSL encryption to protect your data.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Review and Confirm */}
+          {currentStep === 4 && (
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Review and Confirm</h2>
+              
+              <div className="space-y-6">
+                {/* Flight Summary */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Flight Summary</h3>
+                  <div className="text-sm text-gray-600">
+                    <p><strong>Route:</strong> SYD → SIN → DMK (Round Trip)</p>
+                    <p><strong>Date:</strong> Feb 1, 2021 - Feb 5, 2021</p>
+                    <p><strong>Passengers:</strong> 2 (1 Adult, 1 Child)</p>
+                    <p><strong>Total:</strong> EUR 546.70</p>
+                  </div>
+                </div>
+                
+                {/* Traveler Summary */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Traveler Information</h3>
+                  {travelers.map((traveler, index) => (
+                    <div key={traveler.id} className="mb-3 last:mb-0">
+                      <p className="font-medium text-gray-800 capitalize">{traveler.travelerType} {index + 1}</p>
+                      <p className="text-sm text-gray-600">
+                        {traveler.firstName} {traveler.lastName} • {traveler.dateOfBirth} • {traveler.gender}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Contact Summary */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Contact Information</h3>
+                  <div className="text-sm text-gray-600">
+                    <p>{contactInfo.firstName} {contactInfo.lastName}</p>
+                    <p>{contactInfo.email}</p>
+                    <p>{contactInfo.countryCallingCode} {contactInfo.phone}</p>
+                    <p>{contactInfo.address.street}, {contactInfo.address.city}, {contactInfo.address.postalCode}, {contactInfo.address.country}</p>
+                  </div>
+                </div>
+                
+                {/* Terms and Conditions */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-start">
+                    <input
+                      type="checkbox"
+                      required
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                      className="mt-1 mr-3"
+                    />
+                    <div className="text-sm text-gray-600">
+                      <p>I agree to the <Link href="#" className="text-blue-600 hover:underline">Terms and Conditions</Link> and <Link href="#" className="text-blue-600 hover:underline">Privacy Policy</Link>.</p>
+                      <p className="mt-2">I understand that this booking is subject to the airline's terms and conditions and may be subject to change.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Navigation Buttons */}
+          <div className="flex justify-between">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+              disabled={currentStep === 0}
+              className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            
+            <div className="flex gap-3">
+              {currentStep < totalSteps - 1 ? (
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(prev => prev + 1)}
+                  disabled={currentStep === 0 && !user} // Disable if on auth step and no user
+                  className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !termsAccepted}
+                  className="px-8 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    'Confirm Booking'
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </form>
+      </div>
+
+      {/* Authentication Modals */}
+      <SignupModal
+        isOpen={showSignup}
+        onClose={() => setShowSignup(false)}
+        onSuccess={() => {
+          // Simulate successful signup with user data
+          const userData: User = {
+            id: "1",
+            firstName: "John",
+            lastName: "Smith",
+            email: "john.smith@email.com",
+            phone: "+1 555-123-4567",
+          };
+          handleSignupSuccess(userData);
+        }}
+        bookingId={resolvedParams.id}
+      />
+
+      <LoginModal
+        isOpen={showLogin}
+        onClose={() => setShowLogin(false)}
+        onSuccess={() => {
+          // Simulate successful login with user data
+          const userData: User = {
+            id: "1",
+            firstName: "John",
+            lastName: "Smith",
+            email: "john.smith@email.com",
+            phone: "+1 555-123-4567",
+          };
+          handleLoginSuccess(userData);
+        }}
+        onSwitchToSignup={handleSwitchToSignup}
+      />
+    </div>
+  );
+} 
