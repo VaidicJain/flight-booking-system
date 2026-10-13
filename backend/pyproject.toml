@@ -1,9 +1,16 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "Flight Booking System backend"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.116.1",
+    "passlib>=1.7.4",
+    "pydantic[email]>=2.11.7",
+    "sqlalchemy[asyncio]>=2.1.4",
+    "sqlmodel>=0.0.48",
 ]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
